@@ -19,15 +19,17 @@ public class MainActivity extends Activity {
     private TextView progress;
     private static final String PREFS = "festival_checklist";
     private static final String KEY = "data";
-    private static final int COLOR_BG = Color.parseColor("#0F1115");
-    private static final int COLOR_SURFACE = Color.parseColor("#171A21");
-    private static final int COLOR_SURFACE_ALT = Color.parseColor("#1E2431");
-    private static final int COLOR_TEXT_PRIMARY = Color.parseColor("#F2F3F7");
-    private static final int COLOR_TEXT_SECONDARY = Color.parseColor("#AEB6C6");
-    private static final int COLOR_BUTTON_TEXT = Color.parseColor("#F4F6FA");
-    private static final int COLOR_ACCENT = Color.parseColor("#5FB8FF");
-    private static final int COLOR_DANGER = Color.parseColor("#934347");
-    private static final int COLOR_BORDER = Color.parseColor("#2B3343");
+    private static final int COLOR_BG = Color.parseColor("#0B090F");
+    private static final int COLOR_SURFACE = Color.parseColor("#17121C");
+    private static final int COLOR_SURFACE_ALT = Color.parseColor("#241B2A");
+    private static final int COLOR_TEXT_PRIMARY = Color.parseColor("#FFF5FF");
+    private static final int COLOR_TEXT_SECONDARY = Color.parseColor("#C8B7CD");
+    private static final int COLOR_BUTTON_TEXT = Color.parseColor("#FFF5FF");
+    private static final int COLOR_ACCENT = Color.parseColor("#FF4FD8");
+    private static final int COLOR_DANGER = Color.parseColor("#FF5C7A");
+    private static final int COLOR_BORDER = Color.parseColor("#4A2C53");
+    private static final int COLOR_NEON_LIME = Color.parseColor("#C8FF4A");
+    private static final int COLOR_NEON_ORANGE = Color.parseColor("#FF9A4A");
 
     static class Item {
         String name; boolean checked;
@@ -173,7 +175,7 @@ public class MainActivity extends Activity {
                 .setMessage("Toutes les cases seront décochées. Ta liste restera intacte.")
                 .setPositiveButton("Décoche tout", (d,w) -> { for (ArrayList<Item> l:data.values()) for(Item i:l)i.checked=false; save(); render(); })
                 .setNegativeButton("Annuler", null).show());
-        Button addCat = button("+ Catégorie", COLOR_ACCENT, Color.parseColor("#061622"), 0, 14);
+        Button addCat = button("+ Catégorie", COLOR_ACCENT, Color.parseColor("#210A1D"), 0, 14);
         addCat.setOnClickListener(v -> addCategory());
 
         LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -221,7 +223,7 @@ public class MainActivity extends Activity {
         collapseLp.rightMargin = dp(4);
         header.addView(collapse, collapseLp);
 
-        Button plus = button("+", COLOR_SURFACE_ALT, COLOR_BUTTON_TEXT, 36, 0);
+        Button plus = button("+", COLOR_NEON_ORANGE, Color.parseColor("#241004"), 36, 0);
         plus.setOnClickListener(v -> addItem(cat));
         Button del = button("×", COLOR_DANGER, COLOR_BUTTON_TEXT, 36, 0);
         del.setOnClickListener(v -> confirmDeleteCategory(cat));
@@ -302,7 +304,8 @@ public class MainActivity extends Activity {
         int pct = total==0?0:(int)Math.round(done*100.0/total);
         if(progress!=null) {
             progress.setText("✓ " + done + " / " + total + " — " + pct + " % prêt");
-            int chipColor = pct == 100 ? Color.parseColor("#2B7B48") : COLOR_SURFACE_ALT;
+            int chipColor = pct == 100 ? COLOR_NEON_LIME : COLOR_SURFACE_ALT;
+            progress.setTextColor(pct == 100 ? Color.parseColor("#101507") : COLOR_TEXT_PRIMARY);
             progress.setBackground(rounded(chipColor, COLOR_BORDER, 999, 1));
         }
     }
