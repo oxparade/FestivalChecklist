@@ -2,7 +2,9 @@ package fr.cecile.festivalchecklist;
 
 import android.app.*;
 import android.os.Bundle;
+import android.os.Build;
 import android.content.*;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.view.*;
 import android.widget.*;
@@ -15,6 +17,11 @@ public class MainActivity extends Activity {
     private TextView progress;
     private static final String PREFS = "festival_checklist";
     private static final String KEY = "data";
+    private static final int COLOR_BG = Color.parseColor("#121212");
+    private static final int COLOR_TEXT_PRIMARY = Color.parseColor("#F2F2F2");
+    private static final int COLOR_BUTTON_BG = Color.parseColor("#2A2A2A");
+    private static final int COLOR_BUTTON_TEXT = Color.parseColor("#F4F4F4");
+    private static final int COLOR_ACCENT = Color.parseColor("#74C0FF");
 
     static class Item {
         String name; boolean checked;
@@ -23,23 +30,78 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
+        if (Build.VERSION.SDK_INT >= 21) {
+            getWindow().setStatusBarColor(COLOR_BG);
+            getWindow().setNavigationBarColor(COLOR_BG);
+        }
         load();
         render();
     }
 
+    private void applySystemBarTextForDarkBackground() {
+        View decor = getWindow().getDecorView();
+        if (decor == null) return;
+
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController c = decor.getWindowInsetsController();
+            if (c != null) {
+                c.setSystemBarsAppearance(0,
+                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                                | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+            }
+        } else {
+            int flags = decor.getSystemUiVisibility();
+            if (Build.VERSION.SDK_INT >= 23) flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            if (Build.VERSION.SDK_INT >= 26) flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            decor.setSystemUiVisibility(flags);
+        }
+    }
+
     private TextView txt(String s, int sp, boolean bold) {
-        TextView t = new TextView(this); t.setText(s); t.setTextSize(sp); t.setTextColor(Color.rgb(30,30,30));
+        TextView t = new TextView(this); t.setText(s); t.setTextSize(sp); t.setTextColor(COLOR_TEXT_PRIMARY);
         t.setPadding(18,12,18,12); if (bold) t.setTypeface(null, 1); return t;
     }
 
     private Button button(String text) {
-        Button b = new Button(this); b.setText(text); return b;
+        Button b = new Button(this);
+        b.setText(text);
+        b.setAllCaps(false);
+        if (Build.VERSION.SDK_INT >= 21) {
+            b.setBackgroundTintList(ColorStateList.valueOf(COLOR_BUTTON_BG));
+        }
+        b.setTextColor(COLOR_BUTTON_TEXT);
+        return b;
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private void render() {
         ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(14,20,14,30);
+        scroll.setBackgroundColor(COLOR_BG);
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(COLOR_BG);
+        final int padH = dp(14);
+        final int padTop = dp(20);
+        final int padBottom = dp(30);
+        root.setPadding(padH, padTop, padH, padBottom);
         scroll.addView(root); setContentView(scroll);
+        applySystemBarTextForDarkBackground();
+
+        if (Build.VERSION.SDK_INT >= 21) {
+            scroll.setOnApplyWindowInsetsListener((v, insets) -> {
+                root.setPadding(
+                        padH,
+                        padTop + insets.getSystemWindowInsetTop(),
+                        padH,
+                        padBottom + insets.getSystemWindowInsetBottom()
+                );
+                return insets;
+            });
+            scroll.requestApplyInsets();
+        }
 
         root.addView(txt("🎪 Festival — checklist permanente", 24, true));
         progress = txt("", 16, true); root.addView(progress);
@@ -67,6 +129,8 @@ public class MainActivity extends Activity {
         for (Item item : new ArrayList<>(data.get(cat))) {
             LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
             CheckBox cb = new CheckBox(this); cb.setText(item.name); cb.setTextSize(16); cb.setChecked(item.checked);
+            cb.setTextColor(COLOR_TEXT_PRIMARY);
+            if (Build.VERSION.SDK_INT >= 21) cb.setButtonTintList(ColorStateList.valueOf(COLOR_ACCENT));
             cb.setOnCheckedChangeListener((b,c) -> { item.checked=c; save(); updateProgress(); });
             row.addView(cb, new LinearLayout.LayoutParams(0,-2,1));
             Button x = button("×"); x.setOnClickListener(v -> { data.get(cat).remove(item); save(); render(); }); row.addView(x);
