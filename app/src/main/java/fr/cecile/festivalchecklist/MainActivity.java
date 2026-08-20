@@ -14,6 +14,7 @@ import java.util.*;
 
 public class MainActivity extends Activity {
     private final LinkedHashMap<String, ArrayList<Item>> data = new LinkedHashMap<>();
+    private final HashMap<String, Boolean> collapsedCategories = new HashMap<>();
     private LinearLayout root;
     private TextView progress;
     private static final String PREFS = "festival_checklist";
@@ -210,6 +211,16 @@ public class MainActivity extends Activity {
         title.setPadding(dp(4), dp(2), dp(6), dp(8));
         header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
 
+        TextView collapse = new TextView(this);
+        collapse.setText(isCollapsed(cat) ? "▸" : "▾");
+        collapse.setTextColor(COLOR_TEXT_SECONDARY);
+        collapse.setTextSize(20);
+        collapse.setGravity(Gravity.CENTER);
+        collapse.setContentDescription(isCollapsed(cat) ? "Déplier " + cat : "Replier " + cat);
+        LinearLayout.LayoutParams collapseLp = new LinearLayout.LayoutParams(dp(34), dp(38));
+        collapseLp.rightMargin = dp(4);
+        header.addView(collapse, collapseLp);
+
         Button plus = button("+", COLOR_SURFACE_ALT, COLOR_BUTTON_TEXT, 36, 0);
         plus.setOnClickListener(v -> addItem(cat));
         Button del = button("×", COLOR_DANGER, COLOR_BUTTON_TEXT, 36, 0);
@@ -219,6 +230,19 @@ public class MainActivity extends Activity {
         header.addView(plus, plusLp);
         header.addView(del);
         card.addView(header);
+
+        View.OnClickListener toggle = v -> {
+            collapsedCategories.put(cat, !isCollapsed(cat));
+            render();
+        };
+        header.setOnClickListener(toggle);
+        title.setOnClickListener(toggle);
+        collapse.setOnClickListener(toggle);
+
+        LinearLayout items = new LinearLayout(this);
+        items.setOrientation(LinearLayout.VERTICAL);
+        items.setVisibility(isCollapsed(cat) ? View.GONE : View.VISIBLE);
+        card.addView(items);
 
         for (Item item : new ArrayList<>(data.get(cat))) {
             LinearLayout row = new LinearLayout(this);
@@ -243,8 +267,13 @@ public class MainActivity extends Activity {
             Button x = button("×", COLOR_DANGER, COLOR_BUTTON_TEXT, 34, 0);
             x.setOnClickListener(v -> { data.get(cat).remove(item); save(); render(); });
             row.addView(x);
-            card.addView(row, rowLp);
+            items.addView(row, rowLp);
         }
+    }
+
+    private boolean isCollapsed(String cat) {
+        Boolean collapsed = collapsedCategories.get(cat);
+        return collapsed != null && collapsed;
     }
 
     private void addItem(String cat) {
