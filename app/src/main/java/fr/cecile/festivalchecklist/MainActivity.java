@@ -6,6 +6,7 @@ import android.os.Build;
 import android.content.*;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.widget.*;
 import org.json.*;
@@ -17,11 +18,15 @@ public class MainActivity extends Activity {
     private TextView progress;
     private static final String PREFS = "festival_checklist";
     private static final String KEY = "data";
-    private static final int COLOR_BG = Color.parseColor("#121212");
-    private static final int COLOR_TEXT_PRIMARY = Color.parseColor("#F2F2F2");
-    private static final int COLOR_BUTTON_BG = Color.parseColor("#2A2A2A");
-    private static final int COLOR_BUTTON_TEXT = Color.parseColor("#F4F4F4");
-    private static final int COLOR_ACCENT = Color.parseColor("#74C0FF");
+    private static final int COLOR_BG = Color.parseColor("#0F1115");
+    private static final int COLOR_SURFACE = Color.parseColor("#171A21");
+    private static final int COLOR_SURFACE_ALT = Color.parseColor("#1E2431");
+    private static final int COLOR_TEXT_PRIMARY = Color.parseColor("#F2F3F7");
+    private static final int COLOR_TEXT_SECONDARY = Color.parseColor("#AEB6C6");
+    private static final int COLOR_BUTTON_TEXT = Color.parseColor("#F4F6FA");
+    private static final int COLOR_ACCENT = Color.parseColor("#5FB8FF");
+    private static final int COLOR_DANGER = Color.parseColor("#934347");
+    private static final int COLOR_BORDER = Color.parseColor("#2B3343");
 
     static class Item {
         String name; boolean checked;
@@ -62,15 +67,42 @@ public class MainActivity extends Activity {
         t.setPadding(18,12,18,12); if (bold) t.setTypeface(null, 1); return t;
     }
 
+    private GradientDrawable rounded(int fill, int stroke, int radiusDp, int strokeDp) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(fill);
+        bg.setCornerRadius(dp(radiusDp));
+        bg.setStroke(dp(strokeDp), stroke);
+        return bg;
+    }
+
     private Button button(String text) {
+        return button(text, COLOR_SURFACE_ALT, COLOR_BUTTON_TEXT, 0, 0);
+    }
+
+    private Button button(String text, int bgColor, int textColor, int minWidthDp, int padH) {
         Button b = new Button(this);
         b.setText(text);
         b.setAllCaps(false);
+        b.setTextSize(14);
+        b.setMinHeight(dp(38));
+        b.setMinimumHeight(dp(38));
+        b.setMinWidth(minWidthDp == 0 ? 0 : dp(minWidthDp));
+        b.setMinimumWidth(minWidthDp == 0 ? 0 : dp(minWidthDp));
+        b.setPadding(dp(padH), dp(8), dp(padH), dp(8));
+        b.setBackground(rounded(bgColor, COLOR_BORDER, 10, 1));
         if (Build.VERSION.SDK_INT >= 21) {
-            b.setBackgroundTintList(ColorStateList.valueOf(COLOR_BUTTON_BG));
+            b.setBackgroundTintList(ColorStateList.valueOf(bgColor));
+            b.setElevation(dp(1));
         }
-        b.setTextColor(COLOR_BUTTON_TEXT);
+        b.setTextColor(textColor);
         return b;
+    }
+
+    private void styleDialogInput(EditText input) {
+        input.setTextColor(COLOR_TEXT_PRIMARY);
+        input.setHintTextColor(COLOR_TEXT_SECONDARY);
+        input.setPadding(dp(12), dp(12), dp(12), dp(12));
+        input.setBackground(rounded(COLOR_SURFACE_ALT, COLOR_BORDER, 10, 1));
     }
 
     private int dp(int value) {
@@ -79,13 +111,14 @@ public class MainActivity extends Activity {
 
     private void render() {
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
         scroll.setBackgroundColor(COLOR_BG);
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(COLOR_BG);
-        final int padH = dp(14);
-        final int padTop = dp(20);
-        final int padBottom = dp(30);
+        final int padH = dp(12);
+        final int padTop = dp(14);
+        final int padBottom = dp(22);
         root.setPadding(padH, padTop, padH, padBottom);
         scroll.addView(root); setContentView(scroll);
         applySystemBarTextForDarkBackground();
@@ -103,43 +136,120 @@ public class MainActivity extends Activity {
             scroll.requestApplyInsets();
         }
 
-        root.addView(txt("🎪 Festival — checklist permanente", 24, true));
-        progress = txt("", 16, true); root.addView(progress);
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        hero.setBackground(rounded(COLOR_SURFACE, COLOR_BORDER, 16, 1));
+        hero.setPadding(dp(16), dp(14), dp(16), dp(14));
 
-        LinearLayout actions = new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL);
-        Button reset = button("Nouveau festival");
+        TextView title = new TextView(this);
+        title.setText("🎪 Festival — checklist permanente");
+        title.setTextColor(COLOR_TEXT_PRIMARY);
+        title.setTextSize(24);
+        title.setTypeface(null, 1);
+        hero.addView(title);
+
+        progress = new TextView(this);
+        progress.setTextSize(14);
+        progress.setTypeface(null, 1);
+        progress.setTextColor(COLOR_TEXT_PRIMARY);
+        progress.setPadding(dp(10), dp(6), dp(10), dp(6));
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(-2, -2);
+        progressLp.topMargin = dp(8);
+        progress.setLayoutParams(progressLp);
+        hero.addView(progress);
+
+        root.addView(hero);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(-1, -2);
+        actionsLp.topMargin = dp(12);
+        actionsLp.bottomMargin = dp(8);
+        actions.setLayoutParams(actionsLp);
+
+        Button reset = button("Nouveau festival", COLOR_SURFACE_ALT, COLOR_BUTTON_TEXT, 0, 14);
         reset.setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Nouveau festival ?")
                 .setMessage("Toutes les cases seront décochées. Ta liste restera intacte.")
                 .setPositiveButton("Décoche tout", (d,w) -> { for (ArrayList<Item> l:data.values()) for(Item i:l)i.checked=false; save(); render(); })
                 .setNegativeButton("Annuler", null).show());
-        Button addCat = button("+ Catégorie"); addCat.setOnClickListener(v -> addCategory());
-        actions.addView(reset, new LinearLayout.LayoutParams(0,-2,1)); actions.addView(addCat, new LinearLayout.LayoutParams(0,-2,1)); root.addView(actions);
+        Button addCat = button("+ Catégorie", COLOR_ACCENT, Color.parseColor("#061622"), 0, 14);
+        addCat.setOnClickListener(v -> addCategory());
+
+        LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams(0, -2, 1);
+        resetLp.rightMargin = dp(6);
+        actions.addView(reset, resetLp);
+        LinearLayout.LayoutParams addCatLp = new LinearLayout.LayoutParams(0, -2, 1);
+        addCatLp.leftMargin = dp(6);
+        actions.addView(addCat, addCatLp);
+        root.addView(actions);
 
         for (String cat : new ArrayList<>(data.keySet())) addCategoryView(cat);
         updateProgress();
     }
 
     private void addCategoryView(String cat) {
-        LinearLayout header = new LinearLayout(this); header.setOrientation(LinearLayout.HORIZONTAL); header.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = txt(cat, 20, true); header.addView(title, new LinearLayout.LayoutParams(0,-2,1));
-        Button plus = button("+"); plus.setOnClickListener(v -> addItem(cat)); header.addView(plus);
-        Button del = button("×"); del.setOnClickListener(v -> confirmDeleteCategory(cat)); header.addView(del);
-        root.addView(header);
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackground(rounded(COLOR_SURFACE, COLOR_BORDER, 14, 1));
+        card.setPadding(dp(10), dp(10), dp(10), dp(8));
+        if (Build.VERSION.SDK_INT >= 21) card.setElevation(dp(1));
+
+        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(-1, -2);
+        cardLp.bottomMargin = dp(10);
+        root.addView(card, cardLp);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText(cat);
+        title.setTextColor(COLOR_TEXT_PRIMARY);
+        title.setTextSize(22);
+        title.setTypeface(null, 1);
+        title.setPadding(dp(4), dp(2), dp(6), dp(8));
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+
+        Button plus = button("+", COLOR_SURFACE_ALT, COLOR_BUTTON_TEXT, 36, 0);
+        plus.setOnClickListener(v -> addItem(cat));
+        Button del = button("×", COLOR_DANGER, COLOR_BUTTON_TEXT, 36, 0);
+        del.setOnClickListener(v -> confirmDeleteCategory(cat));
+        LinearLayout.LayoutParams plusLp = new LinearLayout.LayoutParams(-2, -2);
+        plusLp.rightMargin = dp(6);
+        header.addView(plus, plusLp);
+        header.addView(del);
+        card.addView(header);
 
         for (Item item : new ArrayList<>(data.get(cat))) {
-            LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
-            CheckBox cb = new CheckBox(this); cb.setText(item.name); cb.setTextSize(16); cb.setChecked(item.checked);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setBackground(rounded(COLOR_SURFACE_ALT, COLOR_BORDER, 10, 1));
+            row.setPadding(dp(8), dp(4), dp(6), dp(4));
+
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            rowLp.topMargin = dp(6);
+
+            CheckBox cb = new CheckBox(this);
+            cb.setText(item.name);
+            cb.setTextSize(15);
+            cb.setChecked(item.checked);
             cb.setTextColor(COLOR_TEXT_PRIMARY);
             if (Build.VERSION.SDK_INT >= 21) cb.setButtonTintList(ColorStateList.valueOf(COLOR_ACCENT));
+            cb.setPadding(dp(2), dp(0), dp(0), dp(0));
             cb.setOnCheckedChangeListener((b,c) -> { item.checked=c; save(); updateProgress(); });
             row.addView(cb, new LinearLayout.LayoutParams(0,-2,1));
-            Button x = button("×"); x.setOnClickListener(v -> { data.get(cat).remove(item); save(); render(); }); row.addView(x);
-            root.addView(row);
+
+            Button x = button("×", COLOR_DANGER, COLOR_BUTTON_TEXT, 34, 0);
+            x.setOnClickListener(v -> { data.get(cat).remove(item); save(); render(); });
+            row.addView(x);
+            card.addView(row, rowLp);
         }
     }
 
     private void addItem(String cat) {
         final EditText input = new EditText(this); input.setHint("Ex. batterie externe");
+        styleDialogInput(input);
         new AlertDialog.Builder(this).setTitle("Ajouter à “"+cat+"”").setView(input)
                 .setPositiveButton("Ajouter", (d,w) -> { String s=input.getText().toString().trim(); if(!s.isEmpty()){ data.get(cat).add(new Item(s,false)); save(); render(); } })
                 .setNegativeButton("Annuler",null).show();
@@ -147,6 +257,7 @@ public class MainActivity extends Activity {
 
     private void addCategory() {
         final EditText input = new EditText(this); input.setHint("Ex. Maquillage / fun");
+        styleDialogInput(input);
         new AlertDialog.Builder(this).setTitle("Nouvelle catégorie").setView(input)
                 .setPositiveButton("Ajouter", (d,w) -> { String s=input.getText().toString().trim(); if(!s.isEmpty() && !data.containsKey(s)){ data.put(s,new ArrayList<>()); save(); render(); } })
                 .setNegativeButton("Annuler",null).show();
@@ -160,7 +271,11 @@ public class MainActivity extends Activity {
     private void updateProgress() {
         int total=0, done=0; for(ArrayList<Item> l:data.values()) for(Item i:l){ total++; if(i.checked)done++; }
         int pct = total==0?0:(int)Math.round(done*100.0/total);
-        if(progress!=null) progress.setText("✓ "+done+" / "+total+" — "+pct+" % prêt");
+        if(progress!=null) {
+            progress.setText("✓ " + done + " / " + total + " — " + pct + " % prêt");
+            int chipColor = pct == 100 ? Color.parseColor("#2B7B48") : COLOR_SURFACE_ALT;
+            progress.setBackground(rounded(chipColor, COLOR_BORDER, 999, 1));
+        }
     }
 
     private void defaults() {
